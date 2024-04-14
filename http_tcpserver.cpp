@@ -6,6 +6,8 @@
 
 namespace
 {
+    const int BUFFER_SIZE = 35000;
+
     void log(const std::string &message)
     {
         std::cout << message << std::endl;
@@ -73,6 +75,36 @@ namespace http
         std::ostringstream ss;
         ss << "\n*** Listening on ADDRESS: " << inet_ntoa(m_socket_address.sin_addr) << " PORT: " << ntohs(m_socket_address.sin_port) << " ***\n\n";
         log(ss.str());
+        
+        int bytesReceived;
+
+        while(true){
+            log("=== Waiting for connection ====\n\n");
+            acceptConnection(m_new_socket);
+
+            char buffer[BUFFER_SIZE] = {0};
+            bytesReceived = read(m_new_socket, buffer, BUFFER_SIZE);
+            if(bytesReceived < 0){
+                exitWithError("Failed to read bytes from client socket connection");
+            }
+
+            std::ostringstream ss;
+            ss << "=== Received Request from client === \n\n";
+            log(ss.str());
+
+            sendResponse();
+
+            close(m_new_socket);
+        }
+    }
+
+    void TcpServer::acceptConnection(int &new_socket){
+        new_socket = accept(m_socket, (sockaddr *)&m_socket_address, &m_socket_address_len);
+        if(new_socket < 0){
+            std::ostringstream ss;
+            ss << "Server failed to accept incoming connection from ADDRESS: " << inet_ntoa(m_socket_address.sin_addr) << "; PORT: " << ntohs(m_socket_address.sin_port);
+            exitWithError(ss.str());
+        }
     }
 
 }
